@@ -1,43 +1,4 @@
 import math
-'''
-w_count = 0
-W = 50
-k = 0.5
-div = 0.5
-Ra = 0
-Rn = 0
-Rt = 0
-id_i = 0
-H_id_i = 0
-H_I = 0
-canid_list = list()
-#with open("1min_CANtraffic.log") as f:
-with open("1min_DoStraffic.log") as f:
-	for log in f:
-		log_split = log.split(" ")
-		canpacket = log_split[2].split("#")
-		canid_list.append(canpacket[0])
-		id_i += 1
-		if id_i == W:
-			w_count += 1
-			id_count = [0 for i in range(2048)]
-			for canid in canid_list:
-				id_count[int(canid, 16)] += 1
-			for canid_i in range(0, 2048):
-				if id_count[canid_i] != 0:
-					#print("id_i = %x, count = %d" % (canid_i, id_count[canid_i]))
-					H_id_i += (float(id_count[canid_i])/W)*(math.log(float(W)/id_count[canid_i])) 
-					#print( (id_count[canid_i]/W)*(math.log(W/id_count[canid_i])) )
-			H_I = H_id_i
-			H_id_i = 0
-			print("[%d] H_I=%f" % (w_count, H_I))
-			#list clear
-			canid_list = []
-			id_i = 0
-		#print(log_split[2], end="")
-'''
-
-def 
 
 def PreProcessing(messageList, DLC):
 	payloadLen = len(messageList)
@@ -45,14 +6,18 @@ def PreProcessing(messageList, DLC):
 	magnitude = [0 for i in range(DLC)]
 	previous = messageList[0]
 
-	while item in messageList:
+	for item in messageList:
 		for ix in range(0, DLC):
 			if item[ix] != previous[ix]:
 				bitFlip[ix] += 1
 
 	for ix in range(0, DLC):
 		bitFlip[ix] = bitFlip[ix]/payloadLen
-		magnitude = math.log10(bitFlip[ix])
+		# eliminate log10(0.0)
+		if bitFlip[ix] != 0 :
+			magnitude[ix] = math.ceil(math.log10(bitFlip[ix]))
+		else:
+			magnitude[ix] = -1
 
 	return bitFlip,magnitude
 
@@ -62,10 +27,10 @@ def Phase1(magnitude, DLC):
 	ixS = 0
 	for ix in range(0, DLC):
 		if magnitude[ix] < prevMagnitude :
-			ref.add((ixS, ix-1))
+			ref.append((ixS, ix-1))
 			ixS = ix
 		prevMagnitude = magnitude[ix]
-	ref.add((ixS, DLC-1))
+	ref.append((ixS, DLC-1))
 	return ref
 
 def Phase2(ref, bitFlip):
@@ -75,26 +40,38 @@ def Phase2(ref, bitFlip):
 		ixE = sign
 		mu = mean(bitFlip[ixS:ixE])
 		std = stdDev(bitFlip[ixS:ixE])
-		if bitFlip[ixE] = 0 and matchCounter(bitFlip[ixS:ixE]):
+		if bitFlip[ixE] == 0 and matchCounter(bitFlip[ixS:ixE]):
 			rRef.add((ixS, ixE, COUNTER))
-		else if all(bitFlip[ixS:ixE]=0) and 0.5-std <= mu <= 0.5+std:
+		elif all(bitFlip[ixS:ixE]=0) and 0.5-std <= mu <= 0.5+std:
 			rRef.add((ixS, ixE, CRC))
 		else :
 			rRef.add((ixS, ixE, PHYS))
 	return rRef
 
-
 if __name__=='__main__':
 
-	for 
-		PreProcessing()
+	canids = list()
+	messageLists = [list() for i in range(2048)]
 
+	# create list of canid, list of binary payload 
+	with open("1min_CANtraffic.log") as log_file:
+		for log in log_file:
+			log_split = log.split(" ")
+			canpacket = log_split[2].split("#")
+			#print(canpacket[0], canpacket[1][0:len(canpacket[1])-1], len(canpacket[1][0:len(canpacket[1])-1]))
+			format_len = '0'+str((len(canpacket[1])-1)*4)+'b'
+			payload = format(int(canpacket[1][0],16), format_len)
+			#print(canpacket[0], payload)
+			messageLists[int(canpacket[0], 16)].append(payload)
+			if int(canpacket[0], 16) not in canids :
+				canids.append(int(canpacket[0], 16))
+	canids.sort()
 
-
-
-
-
-
-
-
-
+	# perform Reverse Engineering of Automotive Data frames
+	for canid in canids:
+		DLC = len(messageLists[canid][0])
+		bitFlip, magnitude = PreProcessing(messageLists[canid], DLC)
+		#print(hex(canid), magnitude)
+		ref = Phase1(magnitude, DLC)
+		#print(hex(canid), ref)
+		#rRef = Phase2(ref, bitFlip)
