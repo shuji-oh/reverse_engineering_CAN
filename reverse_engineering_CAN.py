@@ -1,3 +1,4 @@
+import sys
 import math
 from statistics import mean, median,variance,stdev
 
@@ -8,7 +9,6 @@ PHYS = "Physical_Value"
 CONSTANT = "Constant"
 
 def matchCounter(bitFlip):
-	#print(bitFlip)
 	if bitFlip == []:
 		return False
 	elif bitFlip[len(bitFlip)-1]==1 :
@@ -23,6 +23,7 @@ def PreProcessing(messageList, DLC):
 	previous = messageList[0]
 
 	for item in messageList:
+		DLC = len(item)
 		for ix in range(0, DLC):
 			if item[ix] != previous[ix]:
 				bitFlip[ix] += 1
@@ -53,11 +54,9 @@ def Phase2(ref, bitFlip, magnitude):
 	rRef = list()
 	for sign in ref :
 		ixS,ixE = sign
-		#print(all(x == 0.0 for x in bitFlip[ixS:ixE]))
 		if (ixE - ixS) > 1 :
 			mu = mean(bitFlip[ixS:ixE])
 			std = stdev(bitFlip[ixS:ixE])
-			#print(mu,std)
 		else  :
 			mu = 0
 			std = 0
@@ -72,17 +71,23 @@ def Phase2(ref, bitFlip, magnitude):
 	return rRef
 
 if __name__=='__main__':
+	argvs = sys.argv
+	argc = len(argvs)
+
+	if argc < 2:
+		print('Usage: python3 %s filename' % argvs[0])
+		print('[filename format]\n\t[CAN ID]#[PAYLOAD]\nex)\t000#00000000')
+		quit()
+
+	CANtraffic_log = argvs[1]
 
 	canids = list()
 	messageLists = [list() for i in range(2048)]
 
 	# create list of canid, list of binary payload 
-	with open("5min_Toyota_CANtraffic.log") as log_file:
+	with open(CANtraffic_log) as log_file:
 		for log in log_file:
-			#log_split = log.split(" ")
-			#canpacket = log_split[2].split("#")
 			canpacket = log.split("#")
-			#print(canpacket[0], canpacket[1][0:len(canpacket[1])-1], len(canpacket[1][0:len(canpacket[1])-1]))
 			format_len = '0'+str((len(canpacket[1])-1)*4)+'b'
 			payload = format(int(canpacket[1],16), format_len)
 			#print(canpacket[0], payload)
@@ -95,7 +100,6 @@ if __name__=='__main__':
 	for canid in canids:
 		DLC = len(messageLists[canid][0])
 		bitFlip, magnitude = PreProcessing(messageLists[canid], DLC)
-		#print(hex(canid), bitFlip)
 		#print(hex(canid), bitFlip, magnitude)
 		ref = Phase1(magnitude, DLC)
 		#print(hex(canid), ref)
