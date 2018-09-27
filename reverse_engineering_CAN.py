@@ -1,4 +1,19 @@
 import math
+from statistics import mean, median,variance,stdev
+
+#classifer LABELs
+COUNTER = "Counter"
+CRC = "CRC"
+PHYS = "Physical Value"
+
+def matchCounter(bitFlip):
+	print(bitFlip)
+	if bitFlip == []:
+		return False
+	elif bitFlip[len(bitFlip)-1]==1 :
+		return True
+	else :
+		return False
 
 def PreProcessing(messageList, DLC):
 	payloadLen = len(messageList)
@@ -36,16 +51,20 @@ def Phase1(magnitude, DLC):
 def Phase2(ref, bitFlip):
 	rRef = list()
 	for sign in ref :
-		ixS = sign
-		ixE = sign
-		mu = mean(bitFlip[ixS:ixE])
-		std = stdDev(bitFlip[ixS:ixE])
+		ixS,ixE = sign
+		#print(ixS, ixE)
+		if (ixE - ixS) > 1 :
+			mu = mean(bitFlip[ixS:ixE])
+			std = stdev(bitFlip[ixS:ixE])
+		else  :
+			mu = mean(bitFlip[ixS-1:ixE])
+			std = 0
 		if bitFlip[ixE] == 0 and matchCounter(bitFlip[ixS:ixE]):
-			rRef.add((ixS, ixE, COUNTER))
-		elif all(bitFlip[ixS:ixE]=0) and 0.5-std <= mu <= 0.5+std:
-			rRef.add((ixS, ixE, CRC))
+			rRef.append((ixS, ixE, COUNTER))
+		elif all(x == 0 for x in bitFlip[ixS:ixE]) and 0.5-std <= mu <= 0.5+std:
+			rRef.append((ixS, ixE, CRC))
 		else :
-			rRef.add((ixS, ixE, PHYS))
+			rRef.append((ixS, ixE, PHYS))
 	return rRef
 
 if __name__=='__main__':
@@ -71,7 +90,8 @@ if __name__=='__main__':
 	for canid in canids:
 		DLC = len(messageLists[canid][0])
 		bitFlip, magnitude = PreProcessing(messageLists[canid], DLC)
-		#print(hex(canid), magnitude)
+		#print(hex(canid), bitFlip)
 		ref = Phase1(magnitude, DLC)
 		#print(hex(canid), ref)
-		#rRef = Phase2(ref, bitFlip)
+		rRef = Phase2(ref, bitFlip)
+		print(hex(canid), rRef)
