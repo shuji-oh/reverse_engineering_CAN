@@ -7,7 +7,7 @@ CRC = "CRC"
 PHYS = "Physical Value"
 
 def matchCounter(bitFlip):
-	print(bitFlip)
+	#print(bitFlip)
 	if bitFlip == []:
 		return False
 	elif bitFlip[len(bitFlip)-1]==1 :
@@ -57,7 +57,7 @@ def Phase2(ref, bitFlip):
 			mu = mean(bitFlip[ixS:ixE])
 			std = stdev(bitFlip[ixS:ixE])
 		else  :
-			mu = mean(bitFlip[ixS-1:ixE])
+			mu = 0
 			std = 0
 		if bitFlip[ixE] == 0 and matchCounter(bitFlip[ixS:ixE]):
 			rRef.append((ixS, ixE, COUNTER))
@@ -73,13 +73,14 @@ if __name__=='__main__':
 	messageLists = [list() for i in range(2048)]
 
 	# create list of canid, list of binary payload 
-	with open("1min_CANtraffic.log") as log_file:
+	with open("5min_Toyota_CANtraffic.log") as log_file:
 		for log in log_file:
-			log_split = log.split(" ")
-			canpacket = log_split[2].split("#")
+			#log_split = log.split(" ")
+			#canpacket = log_split[2].split("#")
+			canpacket = log.split("#")
 			#print(canpacket[0], canpacket[1][0:len(canpacket[1])-1], len(canpacket[1][0:len(canpacket[1])-1]))
 			format_len = '0'+str((len(canpacket[1])-1)*4)+'b'
-			payload = format(int(canpacket[1][0],16), format_len)
+			payload = format(int(canpacket[1],16), format_len)
 			#print(canpacket[0], payload)
 			messageLists[int(canpacket[0], 16)].append(payload)
 			if int(canpacket[0], 16) not in canids :
@@ -91,6 +92,7 @@ if __name__=='__main__':
 		DLC = len(messageLists[canid][0])
 		bitFlip, magnitude = PreProcessing(messageLists[canid], DLC)
 		#print(hex(canid), bitFlip)
+		#print(hex(canid), magnitude)
 		ref = Phase1(magnitude, DLC)
 		#print(hex(canid), ref)
 		rRef = Phase2(ref, bitFlip)
