@@ -30,10 +30,10 @@ def PreProcessing(messageList, DLC):
 	for ix in range(0, DLC):
 		bitFlip[ix] = bitFlip[ix]/payloadLen
 		# eliminate log10(0.0)
-		if bitFlip[ix] != 0 :
+		if bitFlip[ix] != 0.0 :
 			magnitude[ix] = math.ceil(math.log10(bitFlip[ix]))
 		else:
-			magnitude[ix] = -1
+			magnitude[ix] = -100
 
 	return bitFlip,magnitude
 
@@ -49,22 +49,23 @@ def Phase1(magnitude, DLC):
 	ref.append((ixS, DLC-1))
 	return ref
 
-def Phase2(ref, bitFlip):
+def Phase2(ref, bitFlip, magnitude):
 	rRef = list()
 	for sign in ref :
 		ixS,ixE = sign
-		#print(ixS, ixE)
+		#print(all(x == 0.0 for x in bitFlip[ixS:ixE]))
 		if (ixE - ixS) > 1 :
 			mu = mean(bitFlip[ixS:ixE])
 			std = stdev(bitFlip[ixS:ixE])
+			#print(mu,std)
 		else  :
 			mu = 0
 			std = 0
-		if bitFlip[ixE] == 0 and matchCounter(bitFlip[ixS:ixE]):
+		if magnitude[ixE] == 0 and matchCounter(bitFlip[ixS:ixE]):
 			rRef.append((ixS, ixE, COUNTER))
-		elif all(x == 0 for x in bitFlip[ixS:ixE]) and 0.5-std <= mu <= 0.5+std:
+		elif all(x == 0 for x in magnitude[ixS:ixE]) and 0.5-std <= mu <= 0.5+std:
 			rRef.append((ixS, ixE, CRC))
-		elif all(x == 0 for x in bitFlip[ixS:ixE]):
+		elif all(x == -100 for x in magnitude[ixS:ixE]):
 			rRef.append((ixS, ixE, CONSTANT))
 		else :
 			rRef.append((ixS, ixE, PHYS))
@@ -95,8 +96,8 @@ if __name__=='__main__':
 		DLC = len(messageLists[canid][0])
 		bitFlip, magnitude = PreProcessing(messageLists[canid], DLC)
 		#print(hex(canid), bitFlip)
-		#print(hex(canid), magnitude)
+		#print(hex(canid), bitFlip, magnitude)
 		ref = Phase1(magnitude, DLC)
 		#print(hex(canid), ref)
-		rRef = Phase2(ref, bitFlip)
+		rRef = Phase2(ref, bitFlip, magnitude)
 		print(hex(canid), rRef)
