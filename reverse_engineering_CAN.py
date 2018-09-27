@@ -4,7 +4,8 @@ from statistics import mean, median,variance,stdev
 #classifer LABELs
 COUNTER = "Counter"
 CRC = "CRC"
-PHYS = "Physical Value"
+PHYS = "Physical_Value"
+CONSTANT = "Constant"
 
 def matchCounter(bitFlip):
 	#print(bitFlip)
@@ -40,7 +41,7 @@ def Phase1(magnitude, DLC):
 	ref = list()
 	prevMagnitude = magnitude[0]
 	ixS = 0
-	for ix in range(0, DLC):
+	for ix in range(1, DLC):
 		if magnitude[ix] < prevMagnitude :
 			ref.append((ixS, ix-1))
 			ixS = ix
@@ -63,6 +64,8 @@ def Phase2(ref, bitFlip):
 			rRef.append((ixS, ixE, COUNTER))
 		elif all(x == 0 for x in bitFlip[ixS:ixE]) and 0.5-std <= mu <= 0.5+std:
 			rRef.append((ixS, ixE, CRC))
+		elif all(x == 0 for x in bitFlip[ixS:ixE]):
+			rRef.append((ixS, ixE, CONSTANT))
 		else :
 			rRef.append((ixS, ixE, PHYS))
 	return rRef
