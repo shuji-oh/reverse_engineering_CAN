@@ -29,7 +29,7 @@ def PreProcessing(messageList, DLC):
 				bitFlip[ix] += 1
 
 	for ix in range(0, DLC):
-		bitFlip[ix] = bitFlip[ix]/payloadLen
+		bitFlip[ix] = float(bitFlip[ix])/payloadLen
 		# eliminate log10(0.0)
 		if bitFlip[ix] != 0.0 :
 			magnitude[ix] = math.ceil(math.log10(bitFlip[ix]))
@@ -82,7 +82,13 @@ if __name__=='__main__':
 	CANtraffic_log = argvs[1]
 
 	canids = list()
-	messageLists = [list() for i in range(2048)]
+	messageLists_11 = [list() for i in range(2048)] # for 11bit CAN
+	messageLists_29 = [list() for i in range(2048)] # for 29bit CAN
+	ID_num = 0
+	canid_len = 0
+	CANID11_LEN = 3
+	CANID29_LEN = 9
+	ID_table = {}
 
 	# create list of canid, list of binary payload 
 	with open(CANtraffic_log) as log_file:
@@ -90,18 +96,30 @@ if __name__=='__main__':
 			canpacket = log.split("#")
 			format_len = '0'+str((len(canpacket[1])-1)*4)+'b'
 			payload = format(int(canpacket[1],16), format_len)
-			#print(canpacket[0], payload)
-			messageLists[int(canpacket[0], 16)].append(payload)
+			canid_len = len(str(int(canpacket[0], 16)))
 			if int(canpacket[0], 16) not in canids :
-				canids.append(int(canpacket[0], 16))
+				if canid_len == CANID11_LEN:
+					canids.append(int(canpacket[0], 16))
+				elif canid_len == CANID29_LEN:
+					ID_table.update({int(canpacket[0], 16):ID_num})
+					canids.append(int(canpacket[0], 16))
+					ID_num += 1
+			if canid_len == CANID11_LEN:
+				messageLists_11[int(canpacket[0], 16)].append(payload)
+			elif canid_len == CANID29_LEN:
+				messageLists_29[ID_table[int(canpacket[0], 16)]].append(payload)
 	canids.sort()
 
 	# perform Reverse Engineering of Automotive Data frames
 	for canid in canids:
-		DLC = len(messageLists[canid][0])
-		bitFlip, magnitude = PreProcessing(messageLists[canid], DLC)
-		#print(hex(canid), bitFlip, magnitude)
+		if canid_len == CANID11_LEN:
+			DLC = len(messageLists_11[canid][0])
+			bitFlip, magnitude = PreProcessing(messageLists_11[canid], DLC)
+		elif canid_len == CANID29_LEN:
+			DLC = len(messageLists_29[ID_table[int(canpacket[0], 16)]][0])
+			bitFlip, magnitude = PreProcessing(messageLists_29[ID_table[canid]], DLC)
+		print(hex(canid), bitFlip, magnitude)
 		ref = Phase1(magnitude, DLC)
 		#print(hex(canid), ref)
 		rRef = Phase2(ref, bitFlip, magnitude)
-		print(hex(canid), rRef)
+		#print(hex(canid), rRef)
