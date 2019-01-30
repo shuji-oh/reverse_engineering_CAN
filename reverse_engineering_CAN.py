@@ -118,8 +118,8 @@ if __name__=='__main__':
 		elif canid_len == CANID29_LEN:
 			DLC = len(messageLists_29[ID_table[int(canpacket[0], 16)]][0])
 			bitFlip, magnitude = PreProcessing(messageLists_29[ID_table[canid]], DLC)
-		print(hex(canid), bitFlip, magnitude)
+		#print(hex(canid), bitFlip, magnitude)
 		ref = Phase1(magnitude, DLC)
 		#print(hex(canid), ref)
 		rRef = Phase2(ref, bitFlip, magnitude)
-		#print(hex(canid), rRef)
+		print(hex(canid), rRef)
