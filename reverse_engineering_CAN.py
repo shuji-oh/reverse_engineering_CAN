@@ -86,7 +86,7 @@ if __name__=='__main__':
 	messageLists_29 = [list() for i in range(2048)] # for 29bit CAN
 	ID_num = 0
 	canid_len = 0
-	CANID11_LEN = 3
+	CANID11_LEN = 4
 	CANID29_LEN = 9
 	ID_table = {}
 
@@ -98,13 +98,13 @@ if __name__=='__main__':
 			payload = format(int(canpacket[1],16), format_len)
 			canid_len = len(str(int(canpacket[0], 16)))
 			if int(canpacket[0], 16) not in canids :
-				if canid_len == CANID11_LEN:
+				if canid_len <= CANID11_LEN:
 					canids.append(int(canpacket[0], 16))
 				elif canid_len == CANID29_LEN:
 					ID_table.update({int(canpacket[0], 16):ID_num})
 					canids.append(int(canpacket[0], 16))
 					ID_num += 1
-			if canid_len == CANID11_LEN:
+			if canid_len <= CANID11_LEN:
 				messageLists_11[int(canpacket[0], 16)].append(payload)
 			elif canid_len == CANID29_LEN:
 				messageLists_29[ID_table[int(canpacket[0], 16)]].append(payload)
@@ -112,12 +112,16 @@ if __name__=='__main__':
 
 	# perform Reverse Engineering of Automotive Data frames
 	for canid in canids:
-		if canid_len == CANID11_LEN:
+		if canid_len <= CANID11_LEN:
 			DLC = len(messageLists_11[canid][0])
 			bitFlip, magnitude = PreProcessing(messageLists_11[canid], DLC)
 		elif canid_len == CANID29_LEN:
 			DLC = len(messageLists_29[ID_table[int(canpacket[0], 16)]][0])
 			bitFlip, magnitude = PreProcessing(messageLists_29[ID_table[canid]], DLC)
+		else:
+			print('[invalid frame] canid:%x data_len:%d' % (canid, len(messageLists_11[canid][0])))
+			quit()
+			
 		#print(hex(canid), bitFlip, magnitude)
 		ref = Phase1(magnitude, DLC)
 		#print(hex(canid), ref)
